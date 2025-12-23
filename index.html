@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Desafios dos Símbolos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Luckiest Guy', cursive;
+      text-transform: uppercase;
+      text-align: center;
+      background: linear-gradient(135deg, #ffeb3b, #ff9800);
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      color: #fff;
+      text-shadow: 3px 3px #000;
+      font-size: 2.5em;
+      margin-top: 20px;
+    }
+    .numbers {
+      font-size: 2.5em;
+      margin: 30px;
+      color: #fff;
+      text-shadow: 2px 2px #000;
+    }
+    button {
+      font-size: 2em;
+      margin: 10px;
+      padding: 15px 25px;
+      cursor: pointer;
+      border: none;
+      border-radius: 15px;
+      background: #4caf50;
+      color: #fff;
+      box-shadow: 3px 3px #000;
+      transition: transform 0.2s, background 0.3s;
+    }
+    button:hover {
+      transform: scale(1.1);
+      background: #66bb6a;
+    }
+    .feedback {
+      font-size: 2em;
+      margin-top: 20px;
+      min-height: 40px;
+      color: #fff;
+      text-shadow: 2px 2px #000;
+    }
+    .score {
+      font-size: 1.5em;
+      margin-top: 10px;
+      color: #fff;
+      text-shadow: 2px 2px #000;
+    }
+    .progress-bar {
+      width: 80%;
+      background:#fff;
+      margin:20px auto;
+      border-radius:20px;
+      overflow:hidden;
+      border: 3px solid #000;
+    }
+    .progress {
+      width:0%;
+      height:25px;
+      background: #2196f3;
+      transition: width 0.5s;
+    }
+
+    .correct { animation: bounce 0.5s; }
+    .wrong { animation: shake 0.5s; }
+
+    @keyframes bounce {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      50% { transform: translateX(10px); }
+      75% { transform: translateX(-10px); }
+      100% { transform: translateX(0); }
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 2em; }
+      .numbers { font-size: 2em; }
+      button { font-size: 1.5em; padding: 10px 15px; }
+      .score { font-size: 1.2em; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Desafios dos Símbolos</h1>
+  <h1>Comparando quantidades</h1>
+  <div class="score">
+    Pontos: <span id="points">0</span> | Vidas: <span id="lives">3</span> | Fase: <span id="level">1</span> | Teste: <span id="test">1</span>/5
+  </div>
+  <div class="progress-bar">
+    <div id="progress" class="progress"></div>
+  </div>
+  <div class="numbers">
+    <span id="num1"></span>
+    <span id="operator"> ? </span>
+    <span id="num2"></span>
+  </div>
+  <div>
+    <button onclick="check('<')">&lt;</button>
+    <button onclick="check('>')">&gt;</button>
+    <button onclick="check('=')">=</button>
+    <button onclick="check('≠')">≠</button>
+  </div>
+  <div class="feedback" id="feedback"></div>
+
+  <script>
+    let n1, n2, points = 0, lives = 3, level = 1, test = 1;
+
+    function playSound(type) {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      if (type === "correct") {
+        oscillator.type = "triangle";
+        oscillator.frequency.value = 600;
+        gainNode.gain.value = 0.2;
+      } else if (type === "wrong") {
+        oscillator.type = "sawtooth";
+        oscillator.frequency.value = 150;
+        gainNode.gain.value = 0.3;
+      }
+
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.3);
+    }
+
+    function newChallenge() {
+      let max = level === 1 ? 10 : level === 2 ? 50 : 20;
+      n1 = Math.floor(Math.random() * max);
+      n2 = Math.floor(Math.random() * max);
+
+      if (level === 3) {
+        n1 = Math.floor(Math.random() * 10) + "+" + Math.floor(Math.random() * 10);
+        n2 = Math.floor(Math.random() * 20);
+      }
+
+      document.getElementById("num1").textContent = n1;
+      document.getElementById("num2").textContent = n2;
+      document.getElementById("operator").textContent = "?";
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("feedback").className = "";
+      document.getElementById("test").textContent = test;
+      // ✅ garantir que a fase visível esteja sempre sincronizada
+      document.getElementById("level").textContent = level;
+    }
+
+    function evaluate(val) {
+      if (typeof val === "string" && val.includes("+")) {
+        let parts = val.split("+");
+        return parseInt(parts[0]) + parseInt(parts[1]);
+      }
+      return val;
+    }
+
+    function check(op) {
+      let left = evaluate(n1);
+      let right = evaluate(n2);
+      let correct;
+
+      if (op === "<") correct = left < right;
+      else if (op === ">") correct = left > right;
+      else if (op === "=") correct = left === right;
+      else if (op === "≠") correct = left !== right;
+
+      if (correct) {
+        points += 10;
+        document.getElementById("feedback").textContent = "🎉 Boa!";
+        document.getElementById("feedback").className = "correct";
+        playSound("correct");
+      } else {
+        lives--;
+        document.getElementById("feedback").textContent = "❌ Ops!";
+        document.getElementById("feedback").className = "wrong";
+        playSound("wrong");
+      }
+
+      document.getElementById("points").textContent = points;
+      document.getElementById("lives").textContent = lives;
+
+      // Progresso dentro da fase
+      document.getElementById("progress").style.width = ((test / 5) * 100) + "%";
+
+      if (lives <= 0) {
+        document.getElementById("feedback").textContent = "💀 Game Over!";
+        document.getElementById("feedback").className = "";
+        return;
+      }
+
+      // ✅ Correção: avançar fase imediatamente após o 5º teste
+      if (test === 5) {
+        if (level < 3) {
+          level++;
+          test = 1;
+          // atualizar UI imediatamente
+          document.getElementById("level").textContent = level;
+          document.getElementById("test").textContent = test;
+          document.getElementById("progress").style.width = "0%";
+          setTimeout(newChallenge, 1500);
+        } else {
+          document.getElementById("feedback").textContent = "🏆 Parabéns! Você completou todas as fases!";
+          document.getElementById("feedback").className = "correct";
+        }
+      } else {
+        test++;
+        document.getElementById("test").textContent = test;
+        setTimeout(newChallenge, 1500);
+      }
+    }
+
+    newChallenge();
+  </script>
+</body>
+</html>
